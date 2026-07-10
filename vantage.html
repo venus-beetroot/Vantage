@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Vantage</title>
+<style>
+:root{
+  --bg:#0b0d11; --panel:#12151c; --panel2:#181c26; --hover:#1b202c;
+  --line:rgba(233,236,244,.08); --line2:rgba(233,236,244,.16);
+  --text:#e9ecf4; --soft:#c3cad9; --muted:#97a1b6; --faint:#6b7590;
+  --accent:#e4b75c; --accent-dim:rgba(228,183,92,.14);
+  --up:#3fbf8a; --down:#e0574f; --blue:#6ea8fe;
+  --upbg:rgba(63,191,138,.13); --downbg:rgba(224,87,79,.13); --neubg:rgba(151,161,182,.13);
+  --r:14px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:10px 12px;outline:none;width:100%}
+input:focus{border-color:var(--accent)}
+canvas{display:block;width:100%}
+.num{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+#app{min-height:100%;display:flex;flex-direction:column}
+
+/* Top bar */
+.topbar{display:flex;align-items:center;gap:14px;padding:13px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,13,17,.88);backdrop-filter:blur(10px);z-index:40}
+.wordmark{font-family:var(--serif);font-style:italic;font-size:22px;letter-spacing:.02em}
+.wordmark b{color:var(--accent);font-weight:600}
+.modepill{font-size:10.5px;font-weight:600;letter-spacing:.14em;padding:4px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);text-transform:uppercase}
+.modepill.live{color:var(--up);border-color:rgba(63,191,138,.45)}
+.modepill.demo{color:var(--accent);border-color:rgba(228,183,92,.45)}
+.spacer{flex:1}
+.iconbtn{display:flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:13.5px}
+.iconbtn:hover{border-color:var(--line2);color:var(--text)}
+.profilechip{display:flex;align-items:center;gap:9px;padding:5px 13px 5px 5px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:13.5px}
+.profilechip:hover{border-color:var(--line2)}
+.avatar{width:27px;height:27px;border-radius:50%;background:var(--accent);color:#141008;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;padding:6px 22px 0;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{padding:10px 15px;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;white-space:nowrap}
+.tab:hover{color:var(--soft)}
+.tab.on{color:var(--text);border-bottom-color:var(--accent)}
+
+/* Layout */
+.wrap{width:100%;max-width:1080px;margin:0 auto;padding:26px 22px 80px}
+.h1{font-family:var(--serif);font-size:27px;font-weight:600;line-height:1.25}
+.sub{color:var(--muted);font-size:14px;margin-top:3px}
+.sect{margin-top:32px}
+.secthead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.secttitle{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.sectnote{font-size:12.5px;color:var(--faint)}
+
+/* Cards and grids */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.clicky{cursor:pointer;transition:border-color .15s}
+.clicky:hover{border-color:var(--line2);background:var(--hover)}
+
+/* Table rows */
+.rows{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);overflow:hidden}
+.row{display:grid;grid-template-columns:36px 76px minmax(0,1fr) 96px 84px 104px 150px;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--line);cursor:pointer}
+.row:first-child{border-top:none}
+.row:hover{background:var(--hover)}
+.rowh{cursor:default;color:var(--faint);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;padding:10px 14px}
+.rowh:hover{background:none}
+.sym{font-weight:650;font-size:14.5px}
+.nm{color:var(--soft);font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nm .sec{display:block;color:var(--faint);font-size:11.5px}
+.pr{text-align:right;font-weight:550}
+.chg{text-align:right;font-weight:550;font-size:13.5px}
+.pos{color:var(--up)}.neg{color:var(--down)}
+.sparkbox{height:30px}
+
+/* Badges */
+.scorebadge{display:inline-flex;align-items:center;gap:7px;padding:4px 11px;border-radius:999px;font-size:12.5px;font-weight:650;white-space:nowrap}
+.s-strongup{background:var(--upbg);color:var(--up)}
+.s-up{background:rgba(63,191,138,.09);color:#6fd3a8}
+.s-neu{background:var(--neubg);color:var(--muted)}
+.s-down{background:rgba(224,87,79,.09);color:#eb8a84}
+.s-strongdown{background:var(--downbg);color:var(--down)}
+.flag{display:inline-flex;padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid var(--line2);color:var(--muted)}
+.flag.up{color:var(--up);border-color:rgba(63,191,138,.4)}
+.flag.down{color:var(--down);border-color:rgba(224,87,79,.4)}
+
+/* Star */
+.star{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;color:var(--faint)}
+.star:hover{color:var(--soft);background:var(--panel2)}
+.star.on{color:var(--accent)}
+
+/* Buttons and chips */
+.btn{padding:9px 15px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);font-weight:550;font-size:14px}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:#171106;border-color:transparent;font-weight:650}
+.btn.pri:hover{filter:brightness(1.06)}
+.btn.danger{color:var(--down);border-color:rgba(224,87,79,.4)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);font-size:13px}
+.chip:hover{color:var(--soft)}
+.chip.on{color:var(--accent);border-color:var(--accent);background:var(--accent-dim)}
+
+/* Pillar gauges: centred-zero bars, the signal ledger */
+.pillar{display:grid;grid-template-columns:88px 1fr 52px;gap:12px;align-items:center;margin-top:8px}
+.pillar .k{font-size:12px;color:var(--muted)}
+.pillar .v{font-size:12.5px;text-align:right;color:var(--soft);font-weight:600}
+.pb{height:7px;border-radius:4px;background:var(--panel2);position:relative;overflow:hidden}
+.pb::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--line2)}
+.pb i{position:absolute;top:0;bottom:0;border-radius:4px}
+
+/* Lock screen */
+.lock{flex:1;display:flex;align-items:center;justify-content:center;padding:30px 22px}
+.lockcard{width:100%;max-width:420px}
+.lockcard .wordmark{font-size:38px;text-align:center;display:block}
+.lockcard .tag{color:var(--faint);font-size:13px;text-align:center;margin-top:6px;letter-spacing:.06em}
+.plist{display:flex;flex-direction:column;gap:10px;margin-top:28px}
+.pitem{display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid var(--line);border-radius:13px;background:var(--panel);text-align:left;width:100%}
+.pitem:hover{border-color:var(--line2);background:var(--hover)}
+.pitem .meta{font-size:12px;color:var(--faint)}
+.field{margin-top:14px;text-align:left}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:.04em}
+.err{color:var(--down);font-size:13px;margin-top:10px;text-align:center}
+
+/* Detail overlay */
+.ovl{position:fixed;inset:0;background:rgba(7,9,12,.62);backdrop-filter:blur(3px);z-index:60;display:flex;justify-content:flex-end}
+.panel{width:min(700px,100%);height:100%;overflow-y:auto;background:var(--bg);border-left:1px solid var(--line2);padding:20px 24px 70px}
+.panelhead{display:flex;align-items:flex-start;gap:12px}
+.bigprice{font-size:30px;font-weight:650;margin-top:8px}
+.chartbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 12px 8px;margin-top:14px}
+.klabel{font-size:11px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;font-weight:600}
+.statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stat .k{font-size:11px;color:var(--faint);letter-spacing:.04em}
+.stat .v{font-size:15px;font-weight:600;margin-top:2px}
+.narr{margin-top:16px;display:flex;flex-direction:column;gap:9px}
+.narr p{color:var(--soft);font-size:14px;border-left:2px solid var(--line2);padding-left:12px}
+.srcpill{font-size:10px;font-weight:700;letter-spacing:.12em;padding:3px 8px;border-radius:6px;border:1px solid var(--line2);color:var(--faint)}
+
+/* Banners, toasts, misc */
+.banner{margin:14px 22px 0;padding:11px 15px;border:1px solid rgba(228,183,92,.4);background:rgba(228,183,92,.07);color:var(--accent);border-radius:12px;font-size:13.5px}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line2);color:var(--text);padding:11px 18px;border-radius:12px;font-size:14px;z-index:90;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.foot{margin-top:44px;color:var(--faint);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px;line-height:1.6}
+.skel{background:linear-gradient(90deg,var(--panel2),#212736,var(--panel2));background-size:200% 100%;animation:sk 1.3s infinite;border-radius:8px}
+@keyframes sk{to{background-position:-200% 0}}
+.empty{padding:36px 20px;text-align:center;color:var(--muted)}
+.empty .h{font-family:var(--serif);font-size:19px;color:var(--soft);margin-bottom:6px}
+.searchbar{display:flex;gap:10px;margin-bottom:14px}
+.searchbar input{max-width:340px;text-transform:uppercase}
+details.how{margin-top:10px}
+details.how summary{cursor:pointer;color:var(--accent);font-size:14px;font-weight:550;list-style:none}
+details.how summary::before{content:"+ "}
+details.how[open] summary::before{content:"\2212 "}
+details.how .body{margin-top:10px;color:var(--soft);font-size:14px;display:flex;flex-direction:column;gap:8px}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.kv:first-of-type{border-top:none}
+.kv .k{color:var(--muted)}
+@media (prefers-reduced-motion: reduce){.skel{animation:none}}
+@media (max-width:820px){
+  .grid3{grid-template-columns:1fr 1fr}
+  .row{grid-template-columns:34px 66px minmax(0,1fr) 86px 74px 130px}
+  .sparkhide{display:none}
+  .statgrid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:560px){
+  .grid3,.grid2{grid-template-columns:1fr}
+  .row{grid-template-columns:32px 62px minmax(0,1fr) 80px 120px}
+  .chghide{display:none}
+  .wrap{padding:20px 14px 80px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+/* ============ analytical core (verified in Node and cross-checked in Python) ============ */
+/* Vantage core: indicators, composite scoring, simulated data (created 11 July 2026) */
+
+function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+function safe(x) { return Number.isFinite(x) ? x : 0; }
+
+/* Deterministic RNG so demo charts are stable between reloads */
+function strHash(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function gauss(rng) {
+  let u = 0, v = 0;
+  while (u === 0) u = rng();
+  while (v === 0) v = rng();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+/* ---------- indicators (daily closes) ---------- */
+
+function sma(a, n) {
+  const out = new Array(a.length).fill(null);
+  let s = 0;
+  for (let i = 0; i < a.length; i++) {
+    s += a[i];
+    if (i >= n) s -= a[i - n];
+    if (i >= n - 1) out[i] = s / n;
+  }
+  return out;
+}
+
+/* EMA seeded with the SMA of the first n values (classical convention) */
+function ema(a, n) {
+  const out = new Array(a.length).fill(null);
+  const k = 2 / (n + 1);
+  let s = 0;
+  for (let i = 0; i < a.length; i++) {
+    if (i < n) { s += a[i]; if (i === n - 1) out[i] = s / n; }
+    else out[i] = a[i] * k + out[i - 1] * (1 - k);
+  }
+  return out;
+}
+
+/* Rolling population standard deviation (Bollinger convention) */
+function rollStd(a, n) {
+  const out = new Array(a.length).fill(null);
+  for (let i = n - 1; i < a.length; i++) {
+    let m = 0;
+    for (let j = i - n + 1; j <= i; j++) m += a[j];
+    m /= n;
+    let v = 0;
+    for (let j = i - n + 1; j <= i; j++) v += (a[j] - m) * (a[j] - m);
+    out[i] = Math.sqrt(v / n);
+  }
+  return out;
+}
+
+/* Wilder RSI: seed with simple averages of the first n moves, then recursive smoothing */
+function rsi(a, n) {
+  n = n || 14;
+  const out = new Array(a.length).fill(null);
+  let g = 0, l = 0;
+  for (let i = 1; i < a.length; i++) {
+    const d = a[i] - a[i - 1];
+    const up = d > 0 ? d : 0, dn = d < 0 ? -d : 0;
+    if (i <= n) {
+      g += up; l += dn;
+      if (i === n) { g /= n; l /= n; out[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l); }
+    } else {
+      g = (g * (n - 1) + up) / n;
+      l = (l * (n - 1) + dn) / n;
+      out[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l);
+    }
+  }
+  return out;
+}
+
+function macdCalc(a) {
+  const f = ema(a, 12), s = ema(a, 26);
+  const line = a.map((_, i) => (f[i] != null && s[i] != null) ? f[i] - s[i] : null);
+  const fi = line.findIndex(v => v != null);
+  const seg = ema(line.slice(fi), 9);
+  const signal = new Array(fi).fill(null).concat(seg);
+  const hist = line.map((v, i) => (v != null && signal[i] != null) ? v - signal[i] : null);
+  return { line, signal, hist };
+}
+
+function logReturns(a) {
+  const r = [];
+  for (let i = 1; i < a.length; i++) r.push(Math.log(a[i] / a[i - 1]));
+  return r;
+}
+function stdev(a) {
+  if (a.length < 2) return 0;
+  const m = a.reduce((x, y) => x + y, 0) / a.length;
+  const v = a.reduce((x, y) => x + (y - m) * (y - m), 0) / (a.length - 1);
+  return Math.sqrt(v);
+}
+
+/* ---------- composite scoring ---------- */
+
+function scoreLabel(sc) {
+  if (sc >= 45) return { txt: 'Strong bullish', cls: 's-strongup' };
+  if (sc >= 15) return { txt: 'Bullish lean', cls: 's-up' };
+  if (sc > -15) return { txt: 'Neutral', cls: 's-neu' };
+  if (sc > -45) return { txt: 'Bearish lean', cls: 's-down' };
+  return { txt: 'Strong bearish', cls: 's-strongdown' };
+}
+
+/*
+  analyse(series) where series = { t:[ms], c:[close], v:[volume] }
+  Pillars, each in [-1, 1]:
+    Trend   (0.40): price vs SMA50, SMA20 vs SMA50, MACD line sign and size
+    Momentum(0.35): RSI centred at 50, MACD histogram (price normalised), 14 day ROC
+    Stretch (0.25): z-score vs 50 day mean, Bollinger %B, RSI extremes (mean reversion)
+  Composite = 100 * (0.40 T + 0.35 M + 0.25 S)
+  These weights are defaults, not truths. Test them before trusting them.
+*/
+function analyse(series) {
+  const c = series.c;
+  const n = c.length;
+  if (!c || n < 60) return null;
+  const P = c[n - 1];
+  const s20 = sma(c, 20), s50 = sma(c, 50);
+  const sd20 = rollStd(c, 20), sd50 = rollStd(c, 50);
+  const R = rsi(c, 14);
+  const M = macdCalc(c);
+  const rets = logReturns(c);
+  const vol = stdev(rets) * Math.sqrt(252);
+
+  const sma20 = s20[n - 1], sma50 = s50[n - 1];
+  const rsiNow = R[n - 1];
+  const macdNow = M.line[n - 1], sigNow = M.signal[n - 1], histNow = M.hist[n - 1];
+  const histPrev = M.hist[n - 2];
+
+  const mid = sma20, bw = 2 * sd20[n - 1];
+  const upper = mid + bw, lower = mid - bw;
+  const pB = (upper - lower) > 1e-9 ? (P - lower) / (upper - lower) : 0.5;
+  const z = sd50[n - 1] > 1e-9 ? (P - sma50) / sd50[n - 1] : 0;
+  const roc14 = n > 14 ? P / c[n - 15] - 1 : 0;
+  const chg1d = n > 1 ? P / c[n - 2] - 1 : 0;
+
+  /* Trend pillar */
+  const t1 = clamp(safe((P / sma50 - 1) / 0.05), -1, 1);
+  const t2 = clamp(safe((sma20 / sma50 - 1) / 0.03), -1, 1);
+  const t3 = clamp(safe((macdNow / P) / 0.02), -1, 1);
+  const T = (t1 + t2 + t3) / 3;
+
+  /* Momentum pillar */
+  const m1 = clamp((rsiNow - 50) / 25, -1, 1);
+  const m2 = clamp(safe((histNow / P) / 0.01), -1, 1);
+  const m3 = clamp(safe(roc14 / 0.08), -1, 1);
+  const Mo = (m1 + m2 + m3) / 3;
+
+  /* Stretch pillar: positive means statistically oversold */
+  const s1 = clamp(-z / 2.5, -1, 1);
+  const s2 = rsiNow <= 30 ? clamp((30 - rsiNow) / 15, 0, 1)
+           : rsiNow >= 70 ? -clamp((rsiNow - 70) / 15, 0, 1) : 0;
+  const s3 = clamp(1 - 2 * pB, -1, 1);
+  const S = (s1 + s2 + s3) / 3;
+
+  const score = Math.round(100 * (0.40 * T + 0.35 * Mo + 0.25 * S));
+  const label = scoreLabel(score);
+
+  /* Event flags over recent bars */
+  const flags = [];
+  for (let i = n - 8; i < n; i++) {
+    if (i > 0 && s20[i - 1] != null && s50[i - 1] != null && s20[i] != null) {
+      if (s20[i - 1] <= s50[i - 1] && s20[i] > s50[i]) { flags.push({ txt: 'Golden cross 20/50, ' + (n - i) + ' sessions ago', kind: 'up' }); break; }
+      if (s20[i - 1] >= s50[i - 1] && s20[i] < s50[i]) { flags.push({ txt: 'Death cross 20/50, ' + (n - i) + ' sessions ago', kind: 'down' }); break; }
+    }
+  }
+  for (let i = n - 6; i < n; i++) {
+    if (i > 0 && M.hist[i - 1] != null && M.hist[i] != null) {
+      if (M.hist[i - 1] <= 0 && M.hist[i] > 0) { flags.push({ txt: 'MACD crossed above signal, ' + (n - i) + ' sessions ago', kind: 'up' }); break; }
+      if (M.hist[i - 1] >= 0 && M.hist[i] < 0) { flags.push({ txt: 'MACD crossed below signal, ' + (n - i) + ' sessions ago', kind: 'down' }); break; }
+    }
+  }
+  if (P >= Math.max.apply(null, c)) flags.push({ txt: 'At a 6 month high', kind: 'up' });
+  if (P <= Math.min.apply(null, c)) flags.push({ txt: 'At a 6 month low', kind: 'down' });
+  if (series.v && series.v.length === n) {
+    const v20 = sma(series.v, 20)[n - 1];
+    if (v20 && series.v[n - 1] > 1.8 * v20) flags.push({ txt: 'Volume spike vs 20 day average', kind: 'info' });
+  }
+  if (rsiNow >= 70) flags.push({ txt: 'RSI overbought (' + rsiNow.toFixed(0) + ')', kind: 'down' });
+  if (rsiNow <= 30) flags.push({ txt: 'RSI oversold (' + rsiNow.toFixed(0) + ')', kind: 'up' });
+
+  /* Plain language notes */
+  const notes = [];
+  if (P > sma50 && sma20 > sma50) notes.push('Price sits above both its 20 and 50 day averages, a constructive trend backdrop.');
+  else if (P < sma50 && sma20 < sma50) notes.push('Price sits below both key moving averages, so the medium term trend is working against it.');
+  else notes.push('The moving averages are mixed, which usually marks a trend in transition.');
+
+  if (rsiNow >= 70) notes.push('RSI at ' + rsiNow.toFixed(0) + ' is in overbought territory. That reflects strength, but entries here have historically poor risk to reward and mean reversion risk is elevated.');
+  else if (rsiNow <= 30) notes.push('RSI at ' + rsiNow.toFixed(0) + ' is oversold. Bounce candidates come from this zone, though oversold can stay oversold inside a downtrend.');
+  else notes.push('Momentum is moderate, with RSI at ' + rsiNow.toFixed(0) + ' and a ' + (roc14 >= 0 ? 'positive' : 'negative') + ' 14 day rate of change of ' + (roc14 * 100).toFixed(1) + ' percent.');
+
+  if (Math.abs(z) >= 2) notes.push('The price is ' + Math.abs(z).toFixed(1) + 'σ ' + (z > 0 ? 'above' : 'below') + ' its 50 day mean. If returns were normal that would be roughly the outer 5 percent of readings; they are fatter tailed than normal, so treat it as stretched rather than impossible.');
+  else if (Math.abs(z) >= 1.2) notes.push('The price is ' + Math.abs(z).toFixed(1) + 'σ ' + (z > 0 ? 'above' : 'below') + ' its 50 day mean, moderately stretched.');
+  else notes.push('The price is within about one standard deviation of its 50 day mean, so nothing is statistically stretched here.');
+
+  if (score >= 45) notes.push('Composite reading: strong bullish setup. This is the profile momentum screens flag, typically paired with position sizing and a predefined exit rather than taken on faith.');
+  else if (score >= 15) notes.push('Composite reading: bullish lean. Trend followers would call this constructive but not compelling.');
+  else if (score > -15) notes.push('Composite reading: neutral. The pillars are pulling in different directions, which is the honest state most of the time.');
+  else if (score > -45) notes.push('Composite reading: bearish lean. Rallies inside this profile tend to be sold.');
+  else notes.push('Composite reading: strong bearish setup. Falling knives look statistically cheap the whole way down, which is why the stretch pillar alone never drives the score.');
+
+  return {
+    price: P, chg1d, sma20, sma50, rsiNow,
+    macd: macdNow, macdSignal: sigNow, hist: histNow, histPrev,
+    upper, lower, pB, z, roc14, vol,
+    hi: Math.max.apply(null, c), lo: Math.min.apply(null, c),
+    pillars: { T, M: Mo, S }, score, label, flags, notes,
+    arr: { s20, s50, rsi: R, macd: M, sd20 }
+  };
+}
+
+/* ---------- simulated market (demo mode) ---------- */
+
+const UNIVERSE = [
+  { s: 'SPY',  n: 'S&P 500 ETF',      sec: 'ETF',        base: 645,  mu: 0.10,  sig: 0.14 },
+  { s: 'QQQ',  n: 'Nasdaq 100 ETF',   sec: 'ETF',        base: 575,  mu: 0.13,  sig: 0.18 },
+  { s: 'DIA',  n: 'Dow Jones ETF',    sec: 'ETF',        base: 465,  mu: 0.07,  sig: 0.12 },
+  { s: 'AAPL', n: 'Apple',            sec: 'Technology', base: 255,  mu: 0.12,  sig: 0.26 },
+  { s: 'MSFT', n: 'Microsoft',        sec: 'Technology', base: 520,  mu: 0.18,  sig: 0.24 },
+  { s: 'NVDA', n: 'NVIDIA',           sec: 'Semis',      base: 192,  mu: 0.35,  sig: 0.48 },
+  { s: 'GOOGL',n: 'Alphabet',         sec: 'Technology', base: 208,  mu: 0.15,  sig: 0.28 },
+  { s: 'AMZN', n: 'Amazon',           sec: 'Consumer',   base: 238,  mu: 0.16,  sig: 0.30 },
+  { s: 'META', n: 'Meta Platforms',   sec: 'Technology', base: 735,  mu: 0.20,  sig: 0.34 },
+  { s: 'TSLA', n: 'Tesla',            sec: 'Auto',       base: 345,  mu: 0.05,  sig: 0.55 },
+  { s: 'AMD',  n: 'AMD',              sec: 'Semis',      base: 168,  mu: 0.10,  sig: 0.46 },
+  { s: 'AVGO', n: 'Broadcom',         sec: 'Semis',      base: 265,  mu: 0.22,  sig: 0.34 },
+  { s: 'NFLX', n: 'Netflix',          sec: 'Media',      base: 1085, mu: 0.14,  sig: 0.32 },
+  { s: 'CRM',  n: 'Salesforce',       sec: 'Software',   base: 282,  mu: 0.06,  sig: 0.30 },
+  { s: 'ORCL', n: 'Oracle',           sec: 'Software',   base: 232,  mu: 0.18,  sig: 0.30 },
+  { s: 'PLTR', n: 'Palantir',         sec: 'Software',   base: 142,  mu: 0.25,  sig: 0.60 },
+  { s: 'SHOP', n: 'Shopify',          sec: 'Software',   base: 132,  mu: 0.15,  sig: 0.44 },
+  { s: 'UBER', n: 'Uber',             sec: 'Consumer',   base: 96,   mu: 0.12,  sig: 0.34 },
+  { s: 'COST', n: 'Costco',           sec: 'Retail',     base: 1015, mu: 0.10,  sig: 0.18 },
+  { s: 'WMT',  n: 'Walmart',          sec: 'Retail',     base: 106,  mu: 0.09,  sig: 0.16 },
+  { s: 'JPM',  n: 'JPMorgan',         sec: 'Financials', base: 302,  mu: 0.11,  sig: 0.22 },
+  { s: 'V',    n: 'Visa',             sec: 'Financials', base: 362,  mu: 0.10,  sig: 0.18 },
+  { s: 'MA',   n: 'Mastercard',       sec: 'Financials', base: 585,  mu: 0.11,  sig: 0.18 },
+  { s: 'UNH',  n: 'UnitedHealth',     sec: 'Health',     base: 352,  mu: -0.02, sig: 0.30 },
+  { s: 'LLY',  n: 'Eli Lilly',        sec: 'Health',     base: 815,  mu: 0.12,  sig: 0.30 },
+  { s: 'JNJ',  n: 'Johnson & Johnson',sec: 'Health',     base: 168,  mu: 0.04,  sig: 0.14 },
+  { s: 'XOM',  n: 'Exxon Mobil',      sec: 'Energy',     base: 119,  mu: 0.05,  sig: 0.22 },
+  { s: 'CVX',  n: 'Chevron',          sec: 'Energy',     base: 162,  mu: 0.04,  sig: 0.20 },
+  { s: 'KO',   n: 'Coca-Cola',        sec: 'Staples',    base: 73,   mu: 0.05,  sig: 0.13 },
+  { s: 'PEP',  n: 'PepsiCo',          sec: 'Staples',    base: 152,  mu: 0.02,  sig: 0.14 },
+  { s: 'DIS',  n: 'Disney',           sec: 'Media',      base: 117,  mu: 0.06,  sig: 0.24 },
+  { s: 'BA',   n: 'Boeing',           sec: 'Industrial', base: 214,  mu: 0.03,  sig: 0.34 }
+];
+const INDICES = ['SPY', 'QQQ', 'DIA'];
+
+function metaFor(sym) {
+  const m = UNIVERSE.find(u => u.s === sym);
+  if (m) return m;
+  const h = strHash(sym);
+  return { s: sym, n: sym, sec: 'Custom', base: 40 + (h % 400), mu: ((h % 41) - 15) / 100, sig: 0.2 + (h % 30) / 100 };
+}
+
+/* Geometric Brownian motion with occasional regime shifts and jumps.
+   Deterministic per symbol; ends near the base price for plausibility. */
+function genDemoSeries(sym, bars) {
+  bars = bars || 160;
+  const m = metaFor(sym);
+  const rng = mulberry32(strHash('vantage:' + sym));
+  const dt = 1 / 252;
+  let p = m.base;
+  const raw = [p];
+  let drift = m.mu;
+  for (let i = 1; i < bars; i++) {
+    if (rng() < 0.014) drift = m.mu * [-1.2, 0.2, 1, 2][Math.floor(rng() * 4)];
+    let r = (drift - 0.5 * m.sig * m.sig) * dt + m.sig * Math.sqrt(dt) * gauss(rng);
+    if (rng() < 0.012) r += (rng() < 0.5 ? -1 : 1) * (0.02 + 0.04 * rng());
+    p = p * Math.exp(r);
+    raw.push(p);
+  }
+  const scale = m.base / raw[raw.length - 1];
+  const c = raw.map(x => +(x * scale).toFixed(2));
+
+  /* Weekday timestamps ending today */
+  const t = new Array(bars);
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  for (let i = bars - 1; i >= 0; i--) {
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1);
+    t[i] = d.getTime();
+    d.setDate(d.getDate() - 1);
+  }
+  const v0 = 4e6 + (strHash(sym) % 60) * 1e6;
+  const v = c.map((x, i) => {
+    const ret = i ? Math.abs(Math.log(c[i] / c[i - 1])) : 0;
+    return Math.round(v0 * (0.55 + 0.9 * rng()) * (1 + Math.min(3, ret * 25)));
+  });
+  return { t, c, v, src: 'sim' };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { clamp, strHash, mulberry32, gauss, sma, ema, rollStd, rsi, macdCalc, logReturns, stdev, analyse, scoreLabel, UNIVERSE, INDICES, metaFor, genDemoSeries };
+}
+/* ============ storage (localStorage with in-memory fallback) ============ */
+
+const store = (function () {
+  try {
+    const k = '__vantage_probe__';
+    window.localStorage.setItem(k, '1');
+    window.localStorage.removeItem(k);
+    return {
+      persistent: true,
+      read: key => window.localStorage.getItem(key),
+      write: (key, val) => window.localStorage.setItem(key, val),
+      remove: key => window.localStorage.removeItem(key)
+    };
+  } catch (e) {
+    const mem = new Map();
+    return {
+      persistent: false,
+      read: key => (mem.has(key) ? mem.get(key) : null),
+      write: (key, val) => mem.set(key, String(val)),
+      remove: key => mem.delete(key)
+    };
+  }
+})();
+
+const DBKEY = 'vantage.db.v1';
+let DB = { profiles: [], settings: { apiKey: '' } };
+
+function loadDB() {
+  try {
+    const raw = store.read(DBKEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d && Array.isArray(d.profiles)) DB = { profiles: d.profiles, settings: d.settings || { apiKey: '' } };
+    }
+  } catch (e) { /* corrupt store, start clean */ }
+}
+function saveDB() {
+  try { store.write(DBKEY, JSON.stringify(DB)); } catch (e) { /* storage full or blocked, keep running in memory */ }
+}
+
+/* ============ crypto helpers ============ */
+
+async function sha256(str) {
+  if (window.crypto && crypto.subtle && crypto.subtle.digest) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  /* Fallback for very old or restricted contexts: not cryptographic, profile separation only */
+  let h = strHash(str).toString(16);
+  for (let i = 0; i < 4; i++) h += strHash(h + str + i).toString(16);
+  return h;
+}
+async function hashPin(salt, pin) { return sha256(salt + ':' + pin); }
+function makeSalt() {
+  const a = new Uint8Array(12);
+  if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(a);
+  else for (let i = 0; i < 12; i++) a[i] = Math.floor(Math.random() * 256);
+  return Array.from(a).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/* ============ app state ============ */
+
+const state = {
+  profile: null,
+  tab: 'home',
+  detail: null,
+  filter: 'all',
+  query: '',
+  live: false,
+  netBlocked: false,
+  loadingUni: false,
+  loadedLive: 0,
+  session: [],          /* symbols added via search this session */
+  series: {},           /* sym -> {t,c,v,src,fetchedAt} */
+  lock: { pid: null, creating: false, err: '' }
+};
+const anaCache = {};
+
+/* ============ data service ============ */
+
+const CACHE_MS = 15 * 60 * 1000;
+const callLog = [];
+const MAX_PER_MIN = 7;
+
+function throttleSlot() {
+  return new Promise(resolve => {
+    const attempt = () => {
+      const now = Date.now();
+      while (callLog.length && now - callLog[0] > 60000) callLog.shift();
+      if (callLog.length < MAX_PER_MIN) { callLog.push(now); resolve(); }
+      else setTimeout(attempt, 60000 - (now - callLog[0]) + 150);
+    };
+    attempt();
+  });
+}
+
+async function fetchTD(sym) {
+  const key = DB.settings.apiKey;
+  const url = 'https://api.twelvedata.com/time_series?symbol=' + encodeURIComponent(sym) +
+    '&interval=1day&outputsize=130&apikey=' + encodeURIComponent(key);
+  const res = await fetch(url);
+  const j = await res.json();
+  if (j.status === 'error' || !j.values) throw new Error(j.message || 'No data returned for ' + sym);
+  const vals = j.values.slice().reverse();
+  return {
+    t: vals.map(v => new Date(v.datetime).getTime()),
+    c: vals.map(v => parseFloat(v.close)),
+    v: vals.map(v => parseFloat(v.volume || 0)),
+    src: 'live',
+    fetchedAt: Date.now()
+  };
+}
+
+async function getSeries(sym) {
+  const cached = state.series[sym];
+  if (cached && (cached.src === 'sim' || Date.now() - cached.fetchedAt < CACHE_MS)) return cached;
+  if (!state.live) {
+    const s = genDemoSeries(sym); s.fetchedAt = Date.now();
+    state.series[sym] = s; delete anaCache[sym];
+    return s;
+  }
+  await throttleSlot();
+  try {
+    const s = await fetchTD(sym);
+    state.series[sym] = s; delete anaCache[sym];
+    state.netBlocked = false;
+    return s;
+  } catch (e) {
+    if (e instanceof TypeError) state.netBlocked = true;
+    const s = genDemoSeries(sym); s.fetchedAt = Date.now();
+    state.series[sym] = s; delete anaCache[sym];
+    return s;
+  }
+}
+
+function ana(sym) {
+  const s = state.series[sym];
+  if (!s) return null;
+  const k = sym + ':' + s.fetchedAt;
+  if (!anaCache[sym] || anaCache[sym].k !== k) anaCache[sym] = { k, a: analyse(s) };
+  return anaCache[sym].a;
+}
+
+function loadedSyms() {
+  const set = new Set(UNIVERSE.map(u => u.s));
+  state.session.forEach(s => set.add(s));
+  return Array.from(set).filter(s => state.series[s] && ana(s));
+}
+
+/* ============ formatting ============ */
+
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function money(x) { return '$' + x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function pct(x) { return (x >= 0 ? '+' : '') + (x * 100).toFixed(2) + '%'; }
+function chgCls(x) { return x >= 0 ? 'pos' : 'neg'; }
+
+/* ============ markup builders ============ */
+
+function starSvg(on) {
+  return '<svg width="16" height="16" viewBox="0 0 24 24" fill="' + (on ? 'currentColor' : 'none') +
+    '" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.5 6.1 20.6l1.2-6.5L2.5 9.5l6.6-.9z"/></svg>';
+}
+function isFav(sym) { return state.profile && state.profile.favs.indexOf(sym) >= 0; }
+
+function badge(a) {
+  return '<span class="scorebadge ' + a.label.cls + '"><span class="num">' + (a.score > 0 ? '+' : '') + a.score.toFixed(0) + '</span>' + a.label.txt + '</span>';
+}
+
+function rowHtml(sym) {
+  const a = ana(sym); if (!a) return '';
+  const m = metaFor(sym);
+  return '<div class="row clicky" data-act="open" data-sym="' + esc(sym) + '">' +
+    '<button class="star' + (isFav(sym) ? ' on' : '') + '" data-act="star" data-sym="' + esc(sym) + '" title="Favourite">' + starSvg(isFav(sym)) + '</button>' +
+    '<span class="sym">' + esc(sym) + '</span>' +
+    '<span class="nm">' + esc(m.n) + '<span class="sec">' + esc(m.sec) + '</span></span>' +
+    '<span class="num" style="text-align:right">' + money(a.price) + '</span>' +
+    '<span class="chg chghide ' + chgCls(a.chg1d) + '">' + pct(a.chg1d) + '</span>' +
+    '<span class="sparkbox sparkhide"><canvas data-spark="' + esc(sym) + '"></canvas></span>' +
+    '<span style="text-align:right">' + badge(a) + '</span></div>';
+}
+
+function rowsBlock(syms) {
+  if (!syms.length) return '<div class="rows"><div class="empty">Nothing here yet.</div></div>';
+  return '<div class="rows"><div class="row rowh"><span></span><span>Sym</span><span>Name</span>' +
+    '<span style="text-align:right">Price</span><span class="chghide" style="text-align:right">1d</span>' +
+    '<span class="sparkhide">Trend</span><span style="text-align:right">Signal</span></div>' +
+    syms.map(rowHtml).join('') + '</div>';
+}
+
+function skeletons(n) {
+  let h = '<div class="rows">';
+  for (let i = 0; i < n; i++) h += '<div class="row"><span class="skel" style="height:18px"></span><span class="skel" style="height:14px"></span><span class="skel" style="height:14px"></span><span class="skel" style="height:14px"></span><span class="chghide skel" style="height:14px"></span><span class="sparkhide skel" style="height:22px"></span><span class="skel" style="height:20px"></span></div>';
+  return h + '</div>';
+}
+
+/* ============ lock screen ============ */
+
+function renderLock() {
+  const L = state.lock;
+  let inner = '';
+  if (L.creating || DB.profiles.length === 0) {
+    inner =
+      '<div class="field" style="margin-top:22px"><label>Name</label><input id="npName" maxlength="24" placeholder="e.g. Haoran"></div>' +
+      '<div class="field" style="margin-top:12px"><label>PIN (4 to 8 digits)</label><input id="npPin" type="password" inputmode="numeric" maxlength="8" data-enter="mkprofile"></div>' +
+      '<div class="field" style="margin-top:12px"><label>Confirm PIN</label><input id="npPin2" type="password" inputmode="numeric" maxlength="8" data-enter="mkprofile"></div>' +
+      (L.err ? '<div class="err">' + esc(L.err) + '</div>' : '') +
+      '<button class="btn pri" style="width:100%;margin-top:16px" data-act="mkprofile">Create profile</button>' +
+      (DB.profiles.length ? '<button class="btn" style="width:100%;margin-top:10px" data-act="lockback">Back</button>' : '');
+  } else if (L.pid) {
+    const p = DB.profiles.find(x => x.id === L.pid);
+    inner =
+      '<div style="display:flex;align-items:center;gap:11px;margin-top:22px"><span class="avatar">' + esc(p.name[0].toUpperCase()) + '</span><b>' + esc(p.name) + '</b></div>' +
+      '<div class="field" style="margin-top:14px"><label>PIN</label><input id="pinIn" type="password" inputmode="numeric" maxlength="8" autofocus data-enter="pin-ok"></div>' +
+      (L.err ? '<div class="err">' + esc(L.err) + '</div>' : '') +
+      '<button class="btn pri" style="width:100%;margin-top:16px" data-act="pin-ok">Unlock</button>' +
+      '<button class="btn" style="width:100%;margin-top:10px" data-act="lockback">Back</button>';
+  } else {
+    inner = '<div class="plist" style="margin-top:22px">' +
+      DB.profiles.map(p =>
+        '<button class="pitem" data-act="pselect" data-pid="' + esc(p.id) + '"><span class="avatar">' + esc(p.name[0].toUpperCase()) + '</span>' +
+        '<span><b>' + esc(p.name) + '</b><span style="display:block;font-size:12px;color:var(--faint)">' + p.favs.length + ' favourite' + (p.favs.length === 1 ? '' : 's') + '</span></span></button>').join('') +
+      '</div><button class="btn" style="width:100%;margin-top:14px" data-act="newprofile">New profile</button>';
+  }
+  return '<div class="lock"><div class="lockcard">' +
+    '<span class="wordmark"><i>V</i>antage</span><div class="tag">SIGNAL LEDGER FOR EQUITIES</div>' +
+    (store.persistent ? '' : '<div class="banner" style="margin:18px 0 0">Preview sandbox: profiles and data will not persist after this session. Download the file and run it locally for full persistence.</div>') +
+    inner + '</div></div>';
+}
+
+/* ============ tabs ============ */
+
+function greeting() {
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+}
+
+function renderHome() {
+  const date = new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const idx = INDICES.filter(s => state.series[s] && ana(s));
+  const idxCards = idx.map(s => {
+    const a = ana(s), m = metaFor(s);
+    return '<div class="card clicky" data-act="open" data-sym="' + s + '"><div style="display:flex;justify-content:space-between;align-items:baseline"><b>' + esc(m.n) + '</b><span class="chg ' + chgCls(a.chg1d) + '">' + pct(a.chg1d) + '</span></div>' +
+      '<div class="num" style="font-size:21px;font-weight:650;margin:4px 0 8px">' + money(a.price) + '</div>' +
+      '<div style="height:34px"><canvas data-spark="' + s + '"></canvas></div></div>';
+  }).join('');
+
+  const syms = loadedSyms().filter(s => INDICES.indexOf(s) < 0);
+  const ranked = syms.slice().sort((x, y) => ana(y).score - ana(x).score);
+  const favs = state.profile.favs.filter(s => state.series[s] && ana(s));
+
+  let uniNote = '';
+  if (state.live && syms.length < UNIVERSE.length - INDICES.length && !state.loadingUni) {
+    uniNote = '<div class="card" style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:14px"><span style="color:var(--soft);font-size:14px">Only ' + syms.length + ' of ' + (UNIVERSE.length - 3) + ' universe stocks are loaded in live mode. Loading the rest uses about ' + (UNIVERSE.length - 3 - syms.length) + ' API credits and takes a few minutes on the free tier.</span><button class="btn" data-act="loaduni">Load full universe</button></div>';
+  }
+  if (state.loadingUni) uniNote = '<div class="card" style="margin-top:14px;color:var(--soft);font-size:14px">Loading universe: ' + state.loadedLive + ' of ' + UNIVERSE.length + ' fetched. The free tier allows 8 calls per minute, so this trickles in.</div>';
+
+  return '<div class="h1">' + greeting() + ', ' + esc(state.profile.name) + '</div><div class="sub">' + date + (state.live ? '' : ' &middot; simulated market session') + '</div>' +
+    '<div class="sect"><div class="secthead"><span class="secttitle">Market pulse</span><span class="sectnote">' + (state.live ? 'ETF proxies for the majors' : 'ETF proxies, simulated') + '</span></div><div class="grid3">' + idxCards + '</div></div>' +
+    uniNote +
+    '<div class="sect"><div class="secthead"><span class="secttitle">Strongest composites</span><span class="sectnote">highest scores in the loaded set</span></div>' + rowsBlock(ranked.slice(0, 3)) + '</div>' +
+    '<div class="sect"><div class="secthead"><span class="secttitle">Weakest composites</span><span class="sectnote">where the maths leans bearish</span></div>' + rowsBlock(ranked.slice(-3).reverse()) + '</div>' +
+    (favs.length ? '<div class="sect"><div class="secthead"><span class="secttitle">Your favourites</span><span class="sectnote"><span class="clicky" data-act="tab" data-tab="favs" style="color:var(--accent)">view all</span></span></div>' + rowsBlock(favs.slice(0, 4)) + '</div>' : '') +
+    footHtml();
+}
+
+function renderFavs() {
+  const favs = state.profile.favs.filter(s => state.series[s] && ana(s));
+  if (!favs.length) return '<div class="h1">Favourites</div><div class="sub">Stocks you star land here.</div>' +
+    '<div class="empty" style="margin-top:36px"><div class="h">No favourites yet</div>Star anything from Discover and it will pin itself to this tab.<div style="margin-top:14px"><button class="btn pri" data-act="tab" data-tab="disc">Open Discover</button></div></div>' + footHtml();
+  const cards = favs.map(s => {
+    const a = ana(s), m = metaFor(s);
+    const flag = a.flags.length ? '<div style="margin-top:10px"><span class="flag ' + (a.flags[0].kind || '') + '">' + esc(a.flags[0].txt) + '</span></div>' : '';
+    return '<div class="card clicky" data-act="open" data-sym="' + esc(s) + '">' +
+      '<div style="display:flex;align-items:center;gap:9px"><b class="sym">' + esc(s) + '</b><span class="nm" style="flex:1">' + esc(m.n) + '</span>' +
+      '<button class="star on" data-act="star" data-sym="' + esc(s) + '">' + starSvg(true) + '</button></div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:9px"><span class="num" style="font-size:19px;font-weight:650">' + money(a.price) + '</span><span class="chg ' + chgCls(a.chg1d) + '">' + pct(a.chg1d) + '</span></div>' +
+      '<div style="height:38px;margin:10px 0"><canvas data-spark="' + esc(s) + '"></canvas></div>' +
+      badge(a) + flag + '</div>';
+  }).join('');
+  return '<div class="h1">Favourites</div><div class="sub">' + favs.length + ' starred, sorted your way</div><div class="grid2" style="margin-top:22px">' + cards + '</div>' + footHtml();
+}
+
+function passFilter(a) {
+  switch (state.filter) {
+    case 'buy': return a.score >= 30;
+    case 'sell': return a.score <= -30;
+    case 'oversold': return a.rsiNow < 32;
+    case 'overbought': return a.rsiNow > 68;
+    default: return true;
+  }
+}
+
+function renderDisc() {
+  const chips = [['all', 'All'], ['buy', 'Buy watch'], ['sell', 'Sell watch'], ['oversold', 'Oversold'], ['overbought', 'Overbought']]
+    .map(c => '<button class="chip' + (state.filter === c[0] ? ' on' : '') + '" data-act="filter" data-f="' + c[0] + '">' + c[1] + '</button>').join('');
+  const syms = loadedSyms().filter(s => passFilter(ana(s))).sort((x, y) => ana(y).score - ana(x).score);
+  const body = state.loadingUni && !syms.length ? skeletons(8) : rowsBlock(syms);
+  return '<div class="h1">Discover</div><div class="sub">The full watchlist, ranked by composite score. Filters isolate the setups screeners care about.</div>' +
+    '<div class="searchbar" style="margin-top:20px"><input id="q" placeholder="Add a ticker, e.g. IBM" maxlength="8" data-enter="search"><button class="btn" data-act="search">Add</button></div>' +
+    '<div class="chips" style="margin-bottom:14px">' + chips + '</div>' + body + footHtml();
+}
+
+function renderSet() {
+  const p = state.profile;
+  return '<div class="h1">Settings</div><div class="sub">Profile, data connection and the fine print</div>' +
+    '<div class="grid2" style="margin-top:22px;align-items:start">' +
+
+    '<div class="card"><div class="klabel">Profile</div>' +
+    '<div class="field"><label>Display name</label><input id="pname" value="' + esc(p.name) + '" maxlength="24"></div>' +
+    '<button class="btn" style="margin-top:10px" data-act="savename">Save name</button>' +
+    '<div class="klabel" style="margin-top:22px">Change PIN</div>' +
+    '<div class="field"><label>Current PIN</label><input id="oldpin" type="password" inputmode="numeric" maxlength="8"></div>' +
+    '<div class="field" style="margin-top:10px"><label>New PIN (4 to 8 digits)</label><input id="newpin" type="password" inputmode="numeric" maxlength="8"></div>' +
+    '<div class="field" style="margin-top:10px"><label>Confirm new PIN</label><input id="newpin2" type="password" inputmode="numeric" maxlength="8" data-enter="changepin"></div>' +
+    '<button class="btn" style="margin-top:10px" data-act="changepin">Update PIN</button>' +
+    '<div class="klabel" style="margin-top:22px">Danger zone</div>' +
+    '<div class="field"><label>Enter PIN to delete this profile</label><input id="delpin" type="password" inputmode="numeric" maxlength="8"></div>' +
+    '<button class="btn danger" style="margin-top:10px" data-act="delprofile">Delete profile</button></div>' +
+
+    '<div>' +
+    '<div class="card"><div class="klabel">Live data</div>' +
+    '<p style="color:var(--soft);font-size:14px;margin-bottom:12px">Vantage uses the Twelve Data API for daily bars. The free plan allows 8 calls per minute and 800 per day, which this app throttles to automatically. Your key is stored only in this browser' + (store.persistent ? '' : ' (and this preview cannot persist it)') + '.</p>' +
+    '<div class="field"><label>Twelve Data API key</label><input id="apikey" value="' + esc(DB.settings.apiKey) + '" placeholder="paste key from twelvedata.com" data-enter="savekey"></div>' +
+    '<div style="display:flex;gap:9px;margin-top:12px;flex-wrap:wrap"><button class="btn pri" data-act="savekey">Save and test</button><button class="btn" data-act="clearcache">Clear cached data</button>' + (DB.settings.apiKey ? '<button class="btn" data-act="demomode">Switch to demo</button>' : '') + '</div>' +
+    (state.netBlocked ? '<div class="err" style="text-align:left">Network calls are blocked in this environment, so live mode cannot run here. Download the file and open it locally or host it on GitHub Pages.</div>' : '') +
+    '</div>' +
+
+    '<div class="card" style="margin-top:14px"><div class="klabel">How the score works</div>' +
+    '<p style="color:var(--soft);font-size:14px">Each stock gets a composite from three pillars, every component clamped to a minus one to plus one range.</p>' +
+    '<div class="kv"><span class="k">Trend, weight 0.40</span><span>price vs SMA50, SMA20 vs SMA50, MACD line</span></div>' +
+    '<div class="kv"><span class="k">Momentum, weight 0.35</span><span>RSI, MACD histogram, 14 day rate of change</span></div>' +
+    '<div class="kv"><span class="k">Stretch, weight 0.25</span><span>z-score, Bollinger %B, RSI extremes</span></div>' +
+    '<details class="how"><summary>The honest caveats</summary><div class="body">' +
+    '<span>The weights are defaults, not discovered truths. Momentum and mean reversion pull in opposite directions and no fixed blend wins in all regimes.</span>' +
+    '<span>Everything here is computed from past prices. It describes the present state of a chart; it does not forecast the future, and markets are efficient enough that nothing simple does.</span>' +
+    '<span>Scores compare setups against each other. They are a screen for further reading, not an instruction.</span></div></details></div>' +
+
+    '<div class="card" style="margin-top:14px"><div class="klabel">About</div>' +
+    '<p style="color:var(--soft);font-size:14px">Vantage is a single file app. Profiles, PINs and favourites live in your browser storage. The PIN separates profiles on a shared device; it is not real security, since browser storage is readable by anyone with devtools access.</p></div>' +
+    '</div></div>' + footHtml();
+}
+
+function footHtml() {
+  return '<div class="foot">Vantage summarises past price behaviour with standard technical statistics. Signals are descriptive, not predictive, and nothing here is financial advice.' + (state.live ? ' Live data by Twelve Data, cached for 15 minutes.' : ' Demo mode shows a simulated market generated on your device.') + '</div>';
+}
+
+/* ============ detail overlay ============ */
+
+function pillarGauge(name, v) {
+  const w = Math.min(50, Math.abs(v) * 50);
+  const left = v >= 0 ? 50 : 50 - w;
+  const col = v >= 0 ? 'var(--up)' : 'var(--down)';
+  return '<div class="pillar"><span class="k">' + name + '</span><span class="pb"><i style="left:' + left + '%;width:' + w + '%;background:' + col + '"></i></span><span class="v">' + (v >= 0 ? '+' : '') + v.toFixed(2) + '</span></div>';
+}
+
+function renderDetail() {
+  const sym = state.detail;
+  const s = state.series[sym], a = ana(sym);
+  if (!s || !a) return '';
+  const m = metaFor(sym);
+  const flags = a.flags.map(f => '<span class="flag ' + (f.kind || '') + '">' + esc(f.txt) + '</span>').join(' ');
+  const stats = [
+    ['RSI 14', a.rsiNow.toFixed(1)],
+    ['MACD hist', a.hist.toFixed(2)],
+    ['SMA 20', money(a.sma20)],
+    ['SMA 50', money(a.sma50)],
+    ['Stretch', a.z.toFixed(2) + '\u03C3'],
+    ['Ann. vol', (a.vol * 100).toFixed(0) + '%'],
+    ['Bollinger %B', a.pB.toFixed(2)],
+    ['6 month range', money(a.lo) + ' to ' + money(a.hi)]
+  ].map(x => '<div class="stat"><div style="font-size:11px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase">' + x[0] + '</div><div class="num" style="font-weight:600;margin-top:3px">' + x[1] + '</div></div>').join('');
+
+  return '<div class="ovl" data-act="close"><div class="panel" data-stop="1">' +
+    '<div class="panelhead"><div style="flex:1"><div style="display:flex;align-items:center;gap:10px"><b class="sym" style="font-size:17px">' + esc(sym) + '</b><span class="nm">' + esc(m.n) + '</span><span class="srcpill">' + (s.src === 'live' ? 'LIVE' : 'SIMULATED') + '</span></div>' +
+    '<div class="bigprice num">' + money(a.price) + ' <span class="chg ' + chgCls(a.chg1d) + '" style="font-size:15px">' + pct(a.chg1d) + '</span></div></div>' +
+    '<button class="star' + (isFav(sym) ? ' on' : '') + '" data-act="star" data-sym="' + esc(sym) + '">' + starSvg(isFav(sym)) + '</button>' +
+    '<button class="iconbtn" data-act="close">Close</button></div>' +
+    '<div style="margin-top:14px">' + badge(a) + '</div>' +
+    '<div style="margin-top:14px">' + pillarGauge('Trend', a.pillars.T) + pillarGauge('Momentum', a.pillars.M) + pillarGauge('Stretch', a.pillars.S) + '</div>' +
+    (flags ? '<div class="chips" style="margin-top:14px">' + flags + '</div>' : '') +
+    '<div class="chartbox"><div class="klabel">Price, 20 and 50 day averages, Bollinger band</div><canvas id="cvPrice" height="300"></canvas></div>' +
+    '<div class="chartbox"><div class="klabel">RSI 14</div><canvas id="cvRSI" height="110"></canvas></div>' +
+    '<div class="chartbox"><div class="klabel">MACD 12 26 9</div><canvas id="cvMACD" height="130"></canvas></div>' +
+    '<div class="statgrid" style="margin-top:14px">' + stats + '</div>' +
+    '<div class="narr">' + a.notes.map(n => '<p>' + esc(n) + '</p>').join('') + '</div>' +
+    '<div class="foot">Descriptive statistics on past prices, not advice. ' + (s.src === 'live' ? 'Data by Twelve Data.' : 'This series is simulated.') + '</div>' +
+    '</div></div>';
+}
+
+/* ============ shell and render ============ */
+
+function render() {
+  const app = document.getElementById('app');
+  if (!state.profile) { app.innerHTML = renderLock(); return; }
+  const tabs = [['home', 'Home'], ['favs', 'Favourites'], ['disc', 'Discover'], ['set', 'Settings']]
+    .map(t => '<button class="tab' + (state.tab === t[0] ? ' on' : '') + '" data-act="tab" data-tab="' + t[0] + '">' + t[1] + '</button>').join('');
+  const main = state.tab === 'home' ? renderHome() : state.tab === 'favs' ? renderFavs() : state.tab === 'disc' ? renderDisc() : renderSet();
+  app.innerHTML =
+    '<div class="topbar"><span class="wordmark"><i>V</i>antage</span>' +
+    '<span class="modepill ' + (state.live ? 'live' : 'demo') + '">' + (state.live ? 'Live' : 'Demo') + '</span><span class="spacer"></span>' +
+    '<button class="iconbtn" data-act="refresh">Refresh</button>' +
+    '<button class="profilechip" data-act="logout" title="Lock"><span class="avatar">' + esc(state.profile.name[0].toUpperCase()) + '</span>' + esc(state.profile.name) + '</button></div>' +
+    (state.netBlocked && state.live ? '<div class="banner">Live requests are blocked here, showing simulated data instead. Run the file locally or on GitHub Pages for live quotes.</div>' : '') +
+    (store.persistent ? '' : '<div class="banner">Preview sandbox: nothing persists after this session. Download the file for real storage.</div>') +
+    '<div class="tabs">' + tabs + '</div><div class="wrap">' + main + '</div>' +
+    (state.detail ? renderDetail() : '');
+  requestAnimationFrame(drawAll);
+}
+
+/* ============ canvas drawing ============ */
+
+function setupCanvas(c, hCss) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth || c.parentElement.clientWidth || 300;
+  const h = hCss || c.clientHeight || 100;
+  c.width = w * dpr; c.height = h * dpr;
+  c.style.height = h + 'px';
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+
+function spark(c, sym) {
+  const s = state.series[sym]; if (!s) return;
+  const { ctx, w, h } = setupCanvas(c, c.parentElement.clientHeight || 30);
+  const d = s.c.slice(-60);
+  const mn = Math.min.apply(null, d), mx = Math.max.apply(null, d);
+  const x = i => (i / (d.length - 1)) * (w - 2) + 1;
+  const y = v => mx === mn ? h / 2 : h - 2 - ((v - mn) / (mx - mn)) * (h - 4);
+  const up = d[d.length - 1] >= d[0];
+  ctx.strokeStyle = up ? '#3fbf8a' : '#e0574f';
+  ctx.lineWidth = 1.5; ctx.beginPath();
+  d.forEach((v, i) => i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)));
+  ctx.stroke();
+}
+
+let hoverIdx = null;
+
+function drawPrice() {
+  const c = document.getElementById('cvPrice'); if (!c) return;
+  const sym = state.detail, s = state.series[sym], a = ana(sym);
+  const { ctx, w, h } = setupCanvas(c, 300);
+  const N = Math.min(130, s.c.length);
+  const off = s.c.length - N;
+  const closes = s.c.slice(off);
+  const s20 = a.arr.s20.slice(off), s50 = a.arr.s50.slice(off), sd = a.arr.sd20.slice(off);
+  const padL = 8, padR = 56, padT = 12, padB = 22;
+  let mn = Infinity, mx = -Infinity;
+  for (let i = 0; i < N; i++) {
+    mn = Math.min(mn, closes[i]); mx = Math.max(mx, closes[i]);
+    if (s20[i] != null && sd[i] != null) { mn = Math.min(mn, s20[i] - 2 * sd[i]); mx = Math.max(mx, s20[i] + 2 * sd[i]); }
+  }
+  const span = mx - mn || 1;
+  const X = i => padL + (i / (N - 1)) * (w - padL - padR);
+  const Y = v => padT + (1 - (v - mn) / span) * (h - padT - padB);
+
+  ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.fillStyle = '#6a7385'; ctx.font = '10.5px system-ui'; ctx.lineWidth = 1;
+  for (let g = 0; g <= 3; g++) {
+    const v = mn + (span * g) / 3, yy = Y(v);
+    ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(w - padR + 6, yy); ctx.stroke();
+    ctx.fillText(v >= 1000 ? v.toFixed(0) : v.toFixed(2), w - padR + 10, yy + 3);
+  }
+  for (let g = 0; g < 4; g++) {
+    const i = Math.floor((g / 3) * (N - 1));
+    const d = new Date(s.t[off + i]);
+    ctx.fillText(d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }), Math.min(X(i), w - padR - 30), h - 6);
+  }
+
+  /* Bollinger band fill */
+  ctx.beginPath(); let started = false;
+  for (let i = 0; i < N; i++) if (s20[i] != null && sd[i] != null) { const yy = Y(s20[i] + 2 * sd[i]); started ? ctx.lineTo(X(i), yy) : ctx.moveTo(X(i), yy); started = true; }
+  for (let i = N - 1; i >= 0; i--) if (s20[i] != null && sd[i] != null) ctx.lineTo(X(i), Y(s20[i] - 2 * sd[i]));
+  ctx.closePath(); ctx.fillStyle = 'rgba(110,168,254,.06)'; ctx.fill();
+
+  /* Area under price */
+  const grad = ctx.createLinearGradient(0, padT, 0, h - padB);
+  grad.addColorStop(0, 'rgba(228,183,92,.14)'); grad.addColorStop(1, 'rgba(228,183,92,0)');
+  ctx.beginPath(); ctx.moveTo(X(0), Y(closes[0]));
+  for (let i = 1; i < N; i++) ctx.lineTo(X(i), Y(closes[i]));
+  ctx.lineTo(X(N - 1), h - padB); ctx.lineTo(X(0), h - padB); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  const line = (arr, colour, dash) => {
+    ctx.beginPath(); ctx.setLineDash(dash || []); ctx.strokeStyle = colour; ctx.lineWidth = 1.4;
+    let st = false;
+    for (let i = 0; i < N; i++) if (arr[i] != null) { st ? ctx.lineTo(X(i), Y(arr[i])) : ctx.moveTo(X(i), Y(arr[i])); st = true; }
+    ctx.stroke(); ctx.setLineDash([]);
+  };
+  line(s50, '#5b6474');
+  line(s20, 'rgba(228,183,92,.85)', [4, 3]);
+  ctx.lineWidth = 1.8; line(closes, '#e8eaf0');
+
+  /* Last price tag */
+  const lp = closes[N - 1], ly = Y(lp);
+  ctx.fillStyle = '#e4b75c'; ctx.fillRect(w - padR + 4, ly - 9, padR - 8, 18);
+  ctx.fillStyle = '#141008'; ctx.font = '600 10.5px system-ui';
+  ctx.fillText(lp >= 1000 ? lp.toFixed(0) : lp.toFixed(2), w - padR + 9, ly + 3);
+
+  /* Crosshair */
+  if (hoverIdx != null && hoverIdx >= 0 && hoverIdx < N) {
+    const i = hoverIdx, xx = X(i);
+    ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(xx, padT); ctx.lineTo(xx, h - padB); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#0b0d11'; ctx.strokeStyle = 'rgba(255,255,255,.15)';
+    const d = new Date(s.t[off + i]).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+    const label = d + '  ' + money(closes[i]);
+    ctx.font = '11px system-ui';
+    const tw = ctx.measureText(label).width + 14;
+    ctx.fillRect(padL + 2, padT + 2, tw, 20); ctx.strokeRect(padL + 2, padT + 2, tw, 20);
+    ctx.fillStyle = '#e8eaf0'; ctx.fillText(label, padL + 9, padT + 16);
+  }
+
+  c.onmousemove = ev => {
+    const r = c.getBoundingClientRect();
+    const i = Math.round(((ev.clientX - r.left - padL) / (w - padL - padR)) * (N - 1));
+    if (i !== hoverIdx) { hoverIdx = Math.max(0, Math.min(N - 1, i)); drawPrice(); }
+  };
+  c.onmouseleave = () => { hoverIdx = null; drawPrice(); };
+}
+
+function drawRSI() {
+  const c = document.getElementById('cvRSI'); if (!c) return;
+  const sym = state.detail, s = state.series[sym], a = ana(sym);
+  const { ctx, w, h } = setupCanvas(c, 110);
+  const N = Math.min(130, s.c.length), off = s.c.length - N;
+  const R = a.arr.rsi.slice(off);
+  const padR = 34, padT = 6, padB = 6;
+  const X = i => 4 + (i / (N - 1)) * (w - padR - 8);
+  const Y = v => padT + (1 - v / 100) * (h - padT - padB);
+  ctx.fillStyle = 'rgba(224,87,79,.06)'; ctx.fillRect(4, Y(100), w - padR - 8, Y(70) - Y(100));
+  ctx.fillStyle = 'rgba(63,191,138,.06)'; ctx.fillRect(4, Y(30), w - padR - 8, Y(0) - Y(30));
+  ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+  [30, 70].forEach(v => { ctx.beginPath(); ctx.moveTo(4, Y(v)); ctx.lineTo(w - padR, Y(v)); ctx.stroke(); });
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#6a7385'; ctx.font = '10px system-ui';
+  [30, 70].forEach(v => ctx.fillText(v, w - padR + 6, Y(v) + 3));
+  ctx.strokeStyle = '#6ea8fe'; ctx.lineWidth = 1.6; ctx.beginPath();
+  let st = false;
+  for (let i = 0; i < N; i++) if (R[i] != null) { st ? ctx.lineTo(X(i), Y(R[i])) : ctx.moveTo(X(i), Y(R[i])); st = true; }
+  ctx.stroke();
+}
+
+function drawMACD() {
+  const c = document.getElementById('cvMACD'); if (!c) return;
+  const sym = state.detail, s = state.series[sym], a = ana(sym);
+  const { ctx, w, h } = setupCanvas(c, 130);
+  const N = Math.min(130, s.c.length), off = s.c.length - N;
+  const L = a.arr.macd.line.slice(off), S = a.arr.macd.signal.slice(off), H = a.arr.macd.hist.slice(off);
+  let mx = 0;
+  for (let i = 0; i < N; i++) { if (L[i] != null) mx = Math.max(mx, Math.abs(L[i])); if (S[i] != null) mx = Math.max(mx, Math.abs(S[i])); if (H[i] != null) mx = Math.max(mx, Math.abs(H[i])); }
+  mx = mx || 1;
+  const padT = 6, padB = 6;
+  const X = i => 4 + (i / (N - 1)) * (w - 12);
+  const Y = v => padT + (1 - (v + mx) / (2 * mx)) * (h - padT - padB);
+  ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(4, Y(0)); ctx.lineTo(w - 4, Y(0)); ctx.stroke();
+  const bw = Math.max(1, (w - 12) / N - 1);
+  for (let i = 0; i < N; i++) if (H[i] != null) {
+    ctx.fillStyle = H[i] >= 0 ? 'rgba(63,191,138,.55)' : 'rgba(224,87,79,.55)';
+    const y0 = Y(0), y1 = Y(H[i]);
+    ctx.fillRect(X(i) - bw / 2, Math.min(y0, y1), bw, Math.abs(y1 - y0) || 1);
+  }
+  const line = (arr, colour) => {
+    ctx.beginPath(); ctx.strokeStyle = colour; ctx.lineWidth = 1.5;
+    let st = false;
+    for (let i = 0; i < N; i++) if (arr[i] != null) { st ? ctx.lineTo(X(i), Y(arr[i])) : ctx.moveTo(X(i), Y(arr[i])); st = true; }
+    ctx.stroke();
+  };
+  line(L, '#6ea8fe'); line(S, '#e4b75c');
+}
+
+function drawAll() {
+  document.querySelectorAll('canvas[data-spark]').forEach(c => spark(c, c.getAttribute('data-spark')));
+  if (state.detail) { drawPrice(); drawRSI(); drawMACD(); }
+}
+
+/* ============ toast ============ */
+
+function toast(msg) {
+  const old = document.querySelector('.toast'); if (old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+/* ============ actions ============ */
+
+async function actMkProfile() {
+  const name = (document.getElementById('npName').value || '').trim();
+  const pin = document.getElementById('npPin').value, pin2 = document.getElementById('npPin2').value;
+  if (!name) { state.lock.err = 'A name would help.'; return render(); }
+  if (!/^\d{4,8}$/.test(pin)) { state.lock.err = 'PIN must be 4 to 8 digits.'; return render(); }
+  if (pin !== pin2) { state.lock.err = 'The PINs do not match.'; return render(); }
+  const salt = makeSalt();
+  const hash = await hashPin(salt, pin);
+  const p = { id: 'p' + Date.now(), name, salt, hash, favs: [], createdAt: Date.now() };
+  DB.profiles.push(p); saveDB();
+  state.profile = p; state.lock = { pid: null, creating: false, err: '' };
+  ensureBaseData(); render();
+}
+
+async function actPinOk() {
+  const p = DB.profiles.find(x => x.id === state.lock.pid);
+  const pin = (document.getElementById('pinIn') || {}).value || '';
+  const h = await hashPin(p.salt, pin);
+  if (h !== p.hash) { state.lock.err = 'Wrong PIN.'; return render(); }
+  state.profile = p; state.lock.err = '';
+  ensureBaseData(); render();
+}
+
+async function actSaveKey() {
+  const key = (document.getElementById('apikey').value || '').trim();
+  DB.settings.apiKey = key; saveDB();
+  if (!key) { state.live = false; toast('Key cleared, back to demo mode'); return render(); }
+  toast('Testing key with AAPL...');
+  state.live = true;
+  try {
+    await throttleSlot();
+    const s = await fetchTD('AAPL');
+    state.series.AAPL = s; delete anaCache.AAPL;
+    state.netBlocked = false;
+    Object.keys(state.series).forEach(k => { if (state.series[k].src === 'sim') delete state.series[k]; });
+    Object.keys(anaCache).forEach(k => delete anaCache[k]);
+    ensureBaseData();
+    toast('Live mode on');
+  } catch (e) {
+    if (e instanceof TypeError) { state.netBlocked = true; toast('Network blocked here, key saved for local use'); }
+    else { state.live = false; toast('Key rejected: ' + e.message); }
+  }
+  render();
+}
+
+async function actChangePin() {
+  const p = state.profile;
+  const oldp = document.getElementById('oldpin').value, np = document.getElementById('newpin').value, np2 = document.getElementById('newpin2').value;
+  if (await hashPin(p.salt, oldp) !== p.hash) return toast('Current PIN is wrong');
+  if (!/^\d{4,8}$/.test(np)) return toast('New PIN must be 4 to 8 digits');
+  if (np !== np2) return toast('New PINs do not match');
+  p.salt = makeSalt(); p.hash = await hashPin(p.salt, np); saveDB();
+  toast('PIN updated'); render();
+}
+
+async function actDelProfile() {
+  const p = state.profile;
+  const pin = document.getElementById('delpin').value;
+  if (await hashPin(p.salt, pin) !== p.hash) return toast('PIN is wrong');
+  DB.profiles = DB.profiles.filter(x => x.id !== p.id); saveDB();
+  state.profile = null; state.lock = { pid: null, creating: false, err: '' };
+  render();
+}
+
+async function actSearch() {
+  const q = ((document.getElementById('q') || {}).value || '').trim().toUpperCase();
+  if (!/^[A-Z.]{1,8}$/.test(q)) return toast('Enter a ticker symbol');
+  if (state.session.indexOf(q) < 0 && !UNIVERSE.some(u => u.s === q)) state.session.push(q);
+  toast(state.live ? 'Fetching ' + q + '...' : 'Generating ' + q);
+  await getSeries(q);
+  if (!ana(q)) toast('Not enough data for ' + q);
+  state.detail = q; render();
+}
+
+async function actLoadUni() {
+  state.loadingUni = true; state.loadedLive = 0; render();
+  for (const u of UNIVERSE) {
+    await getSeries(u.s);
+    state.loadedLive++;
+    if (state.loadedLive % 4 === 0) render();
+  }
+  state.loadingUni = false; render();
+}
+
+function ensureBaseData() {
+  if (!state.live) {
+    UNIVERSE.forEach(u => { if (!state.series[u.s]) { const s = genDemoSeries(u.s); s.fetchedAt = Date.now(); state.series[u.s] = s; } });
+  } else {
+    const startup = INDICES.concat(state.profile ? state.profile.favs : []).concat(['AAPL', 'NVDA', 'MSFT']);
+    Array.from(new Set(startup)).forEach(sym => { getSeries(sym).then(() => render()); });
+  }
+}
+
+/* ============ event wiring ============ */
+
+document.addEventListener('click', ev => {
+  const stop = ev.target.closest('[data-stop]');
+  const el = ev.target.closest('[data-act]');
+  if (!el) { return; }
+  if (el.getAttribute('data-act') === 'close' && stop && !ev.target.closest('.panelhead [data-act="close"]')) return;
+  const act = el.getAttribute('data-act');
+  ev.stopPropagation();
+  switch (act) {
+    case 'tab': state.tab = el.getAttribute('data-tab'); state.detail = null; render(); break;
+    case 'open': state.detail = el.getAttribute('data-sym'); hoverIdx = null; getSeries(state.detail).then(() => render()); render(); break;
+    case 'close': state.detail = null; render(); break;
+    case 'star': {
+      const sym = el.getAttribute('data-sym');
+      const i = state.profile.favs.indexOf(sym);
+      i >= 0 ? state.profile.favs.splice(i, 1) : state.profile.favs.push(sym);
+      saveDB(); render(); break;
+    }
+    case 'logout': state.profile = null; state.lock = { pid: null, creating: false, err: '' }; state.detail = null; render(); break;
+    case 'pselect': state.lock.pid = el.getAttribute('data-pid'); state.lock.err = ''; render(); setTimeout(() => { const f = document.getElementById('pinIn'); if (f) f.focus(); }, 40); break;
+    case 'lockback': state.lock = { pid: null, creating: false, err: '' }; render(); break;
+    case 'newprofile': state.lock = { pid: null, creating: true, err: '' }; render(); break;
+    case 'mkprofile': actMkProfile(); break;
+    case 'pin-ok': actPinOk(); break;
+    case 'savekey': actSaveKey(); break;
+    case 'demomode': state.live = false; toast('Demo mode, key kept in settings'); ensureBaseData(); render(); break;
+    case 'clearcache': state.series = {}; Object.keys(anaCache).forEach(k => delete anaCache[k]); ensureBaseData(); toast('Cache cleared'); render(); break;
+    case 'refresh': state.series = {}; Object.keys(anaCache).forEach(k => delete anaCache[k]); ensureBaseData(); toast(state.live ? 'Refreshing live data' : 'Regenerated demo market'); render(); break;
+    case 'filter': state.filter = el.getAttribute('data-f'); render(); break;
+    case 'search': actSearch(); break;
+    case 'loaduni': actLoadUni(); break;
+    case 'savename': {
+      const v = (document.getElementById('pname').value || '').trim();
+      if (v) { state.profile.name = v; saveDB(); toast('Name saved'); render(); }
+      break;
+    }
+    case 'changepin': actChangePin(); break;
+    case 'delprofile': actDelProfile(); break;
+  }
+});
+
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && state.detail) { state.detail = null; render(); return; }
+  if (ev.key !== 'Enter') return;
+  const t = ev.target;
+  if (t && t.getAttribute && t.getAttribute('data-enter')) {
+    ev.preventDefault();
+    const act = t.getAttribute('data-enter');
+    if (act === 'mkprofile') actMkProfile();
+    else if (act === 'pin-ok') actPinOk();
+    else if (act === 'search') actSearch();
+    else if (act === 'savekey') actSaveKey();
+    else if (act === 'changepin') actChangePin();
+  }
+});
+
+let rsz = null;
+window.addEventListener('resize', () => { clearTimeout(rsz); rsz = setTimeout(() => requestAnimationFrame(drawAll), 200); });
+
+/* ============ init ============ */
+
+loadDB();
+state.live = !!DB.settings.apiKey;
+if (!state.live) {
+  UNIVERSE.forEach(u => { const s = genDemoSeries(u.s); s.fetchedAt = Date.now(); state.series[u.s] = s; });
+}
+render();
+</script>
+</body>
+</html>
